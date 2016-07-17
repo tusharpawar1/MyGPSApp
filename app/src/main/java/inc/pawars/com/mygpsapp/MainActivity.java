@@ -88,6 +88,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(R.id.buttonGPS).setOnClickListener(this);
         findViewById(R.id.buttonConfirm).setOnClickListener(this);
         findViewById(R.id.buttonCancel).setOnClickListener(this);
+        findViewById(R.id.buttonSnooze).setOnClickListener(this);
 
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
@@ -104,7 +105,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         timer = new Timer();
 
-/*        timerTask = new TimerTask() {
+        timerTask = new TimerTask() {
             @Override
             public void run() {
                 handler.post(new Runnable() {
@@ -118,9 +119,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 });
 
             }
-        };*/
+        };
 
-//        timer.schedule(timerTask,60000,60000);
+        timer.schedule(timerTask,60000,60000);
         ((MapFragment)getFragmentManager().findFragmentById(R.id.mapfragment)).getMapAsync(this);
 
 
@@ -194,15 +195,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             else if(v instanceof Button && ((Button)v).getId() == R.id.buttonCancel){
                 Log.d("Clicker", "onClick: on Cancel" );
-                vibrator = (Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
-                vibrator.cancel();
+
+                if(vibrator != null) vibrator.cancel();
                 if (null != r ) r.stop();
-//                locationManager.removeUpdates(main);
-
+                locationManager.removeUpdates(main);
+                if (timer != null) timer.cancel();
                 if (currentMarker!= null) currentMarker.remove();
-                if(destinationMarker != null) destinationMarker.remove();
+                if (destinationMarker != null) destinationMarker.remove();
             }
+            else if(v instanceof Button && ((Button)v).getId() == R.id.buttonSnooze){
 
+                if(vibrator != null) vibrator.cancel();
+                if (null != r ) r.stop();
+                locationManager.removeUpdates(main);
+            }
 
         } catch (Exception ex) {
             Toast.makeText(getApplicationContext(), "Exception" +ex, Toast.LENGTH_SHORT).show();
@@ -227,8 +233,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         try {
-//            locationManager.requestSingleUpdate(LocationManager.GPS_PROVIDER, main,null );
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0,this);
+            locationManager.requestSingleUpdate(LocationManager.GPS_PROVIDER, main,null );
+//            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0,this);
 //            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,10000,0,this);
 
         }catch(Exception ex){
@@ -287,8 +293,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             DecimalFormat df = new DecimalFormat("###.####");
             Toast.makeText(getApplicationContext(), getString(R.string.Speed1) +df.format(velo)+ getString(R.string.Speed2), Toast.LENGTH_SHORT).show();
             EditText edTxtLatitude = (EditText) findViewById(R.id.editTextLatitude);
-
-
             edTxtLatitude.setText(edTxtLatitude.getText().toString()+ ","+ df.format(velo));
 
         }

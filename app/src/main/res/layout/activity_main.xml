@@ -61,20 +61,38 @@
                 android:id="@+id/mapfragment"
                 android:layout_gravity="center_horizontal" />
 
-            <Button
-                style="?android:attr/buttonStyleSmall"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="CANCEL MY TRIP"
-                android:id="@+id/buttonCancel"
-                android:layout_gravity="center_horizontal" />
+                android:layout_gravity="center_horizontal">
+
+                <Button
+                    style="?android:attr/buttonStyleSmall"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Snooze"
+                    android:id="@+id/buttonSnooze"
+                    android:layout_weight="1.0" />
+
+                <Button
+                    style="?android:attr/buttonStyleSmall"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="CANCEL MY TRIP"
+                    android:id="@+id/buttonCancel"
+                    android:layout_weight="1.0" />
+
+            </LinearLayout>
+
             <com.inmobi.ads.InMobiBanner
                 android:id="@+id/banner"
-                android:layout_width="320dp"
+                android:layout_width="match_parent"
                 android:layout_height="50dp"
 
                 ads:placementId="1470123353879"
-                ads:refreshInterval="60"/>
+                ads:refreshInterval="60"
+                android:layout_gravity="center_horizontal" />
             <EditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
