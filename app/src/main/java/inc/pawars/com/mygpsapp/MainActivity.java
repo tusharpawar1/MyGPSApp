@@ -1,7 +1,10 @@
 package inc.pawars.com.mygpsapp;
 
 import android.Manifest;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Address;
@@ -17,6 +20,8 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Vibrator;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -341,8 +346,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(lngMinutes < 6 || currentDistMeters < 1000){
             vibrateOnce();
             playSound();
+            sendNotification();
         }
     }
+    private void sendNotification() {
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.drawable.images)
+                        .setContentTitle("Wake Me Up Notification!")
+                        .setContentText("You are almost at your destination ");
+        Intent resultIntent = new Intent(this, MainActivity.class);
+        resultIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        stackBuilder.addParentStack(MainActivity.class);
+        stackBuilder.addNextIntent(resultIntent);
+        PendingIntent resultPendingIntent =
+                stackBuilder.getPendingIntent(
+                        0,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );
+        mBuilder.setContentIntent(resultPendingIntent);
+        NotificationManager mNotificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.notify(0, mBuilder.build());
+    }
+
 
     private void playSound() {
         Uri notif = getDefaultUri(TYPE_RINGTONE);
