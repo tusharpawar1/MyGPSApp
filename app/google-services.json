@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "632016614265",
+    "project_id": "firebase-wake-me-up"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:632016614265:android:98f77dfb3418a625",
+        "android_client_info": {
+          "package_name": "inc.pawars.com.mygpsapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSAYTQXwH1utybiAULOalxL1jPnGqaVh8"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 2,
+          "analytics_property": {
+            "tracking_id": "UA-80741757-1"
+          }
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

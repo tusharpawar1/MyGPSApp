@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Wake Me Up</string>
+    <string name="title_activity_maps">Map</string>
+    <string name="GPSPermissionNotAvail">GPS permission not available</string>
+    <string name="Welcome">Welcome</string>
+    <string name="AddrNotEntered">Address not entered</string>
+    <string name="AddrNotFpund">Address not found please enter full address or nearby address</string>
+    <string name="DestinationNotEntered">Please Enter Destination</string>
+    <string name="SleepMessage">You can sleep now we will wake you just before your destination</string>
+    <string name="RequestedGPSLoc">Requesting GPS location</string>
+    <string name="YouAreApprx">"You are approximately "</string>
+    <string name="MinAway">" minutes away"</string>
+    <string name="Speed1">"You are traveling with speed of "</string>
+    <string name="Speed2">" mi/hr"</string>
+</resources>
