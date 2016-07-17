@@ -11,6 +11,9 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.AudioAttributes;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Vibrator;
 import android.support.v4.app.ActivityCompat;
@@ -46,7 +49,9 @@ import java.util.Map;
 import com.inmobi.ads.*;
 import com.inmobi.sdk.*;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener, LocationListener,OnMapReadyCallback {
+import static android.media.RingtoneManager.*;
+
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, LocationListener,OnMapReadyCallback, GeoTask.Geo {
     private double dblLat = 0;
     private double dblLong = 0;
     private LocationManager locationManager;
@@ -63,11 +68,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Marker currentMarker = null;
     private LatLng previous_location = null;
     private LatLng current_location = null;
-
+    private float currentDistMeters = 0;
+    private long currentDistMinutes = 0;
     private long previousTimeStamp = 0;
     private long currentTimeStamp = 0;
     private MainActivity main;
     private GoogleMap map;
+    Ringtone r;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -189,6 +196,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Log.d("Clicker", "onClick: on Cancel" );
                 vibrator = (Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
                 vibrator.cancel();
+                if (null != r ) r.stop();
 //                locationManager.removeUpdates(main);
 
                 if (currentMarker!= null) currentMarker.remove();
@@ -207,7 +215,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         long pattern[]={10,250,150,350,100,500,100,350,200,200,150};
 
         vibrator = (Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
-//        vibrator.vibrate(pattern,-1);
 
         vibrator.vibrate(pattern,0, new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
 
@@ -250,9 +257,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         float[] results = new float[1];
         Location.distanceBetween(Final_Destination.latitude, Final_Destination.longitude,
                 current_location.latitude, current_location.longitude, results);
-        if(results[0] <500) {
-            vibrateOnce();
-        }
+        currentDistMeters = results[0];
         if(currentMarker != null){
             currentMarker.remove();
         }
@@ -270,8 +275,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
         }
-        double time = Math.round(results[0]/400);
-        Toast.makeText(getApplicationContext(), getString(R.string.YouAreApprx) +time+ getString(R.string.MinAway), Toast.LENGTH_SHORT).show();
+//        double time = Math.round(results[0]/400);
+//        Toast.makeText(getApplicationContext(), getString(R.string.YouAreApprx) +time+ getString(R.string.MinAway), Toast.LENGTH_SHORT).show();
         if(null != previous_location && null != current_location &&
                 !previous_location.equals(current_location) && previousTimeStamp != 0){
             Location.distanceBetween(previous_location.latitude, previous_location.longitude,
@@ -282,17 +287,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             DecimalFormat df = new DecimalFormat("###.####");
             Toast.makeText(getApplicationContext(), getString(R.string.Speed1) +df.format(velo)+ getString(R.string.Speed2), Toast.LENGTH_SHORT).show();
             EditText edTxtLatitude = (EditText) findViewById(R.id.editTextLatitude);
-            EditText edTxtLongitude = (EditText) findViewById(R.id.editTextLongitude);
+
 
             edTxtLatitude.setText(edTxtLatitude.getText().toString()+ ","+ df.format(velo));
-            edTxtLongitude.setText(edTxtLongitude.getText().toString()+ ","+ time);
+
         }
-        AsyncTask at = new AsyncTask() {
-            @Override
-            protected Object doInBackground(Object[] params) {
-                return null;
-            }
-        };
+        String str_from = current_location.latitude+"," + current_location.longitude ;
+        String str_to = Final_Destination.latitude + ","+ Final_Destination.longitude ;
+        String url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=" + str_from + "&destinations=" + str_to + "&mode=driving&language=fr-FR&avoid=tolls&key=AIzaSyBnLYofF9CaNVJeYgr9GcBi4EFu8txpmAA";
+        new GeoTask(MainActivity.this).execute(url);
 
 //        vibrateOnce();
 
@@ -319,4 +322,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         this.map = googleMap;
         map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
     }
+
+    @Override
+    public void setDouble(String result) {
+        String res[]=result.split(",");
+        Double min=Double.parseDouble(res[0])/60;
+        long lngMinutes = Math.round(min);
+        currentDistMinutes = lngMinutes;
+        int dist=Integer.parseInt(res[1])/1000;
+        EditText edTxtLongitude = (EditText) findViewById(R.id.editTextLongitude);
+        edTxtLongitude.setText(edTxtLongitude.getText().toString()+ ","+ lngMinutes );
+        Toast.makeText(getApplicationContext(), getString(R.string.YouAreApprx)  + lngMinutes  +  getString(R.string.MinAway), Toast.LENGTH_SHORT).show();
+
+        if(lngMinutes < 6 || currentDistMeters < 1000){
+            vibrateOnce();
+            playSound();
+        }
+    }
+
+    private void playSound() {
+        Uri notif = getDefaultUri(TYPE_RINGTONE);
+        r = RingtoneManager.getRingtone(getApplicationContext(), notif);
+        r.play();
+
+    }
+
+
 }
