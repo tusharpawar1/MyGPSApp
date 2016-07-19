@@ -80,13 +80,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private MainActivity main;
     private GoogleMap map;
     Ringtone r;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         InMobiSdk.init(this, "b13dfbdf78a34cb985bd7fc6a9fe222d"); //'this' is used specify context
         InMobiBanner banner = (InMobiBanner)findViewById(R.id.banner);
-        banner.setRefreshInterval(20);
+        banner.setRefreshInterval(30);
         banner.setEnableAutoRefresh(true);
         banner.load();
         findViewById(R.id.buttonSearch).setOnClickListener(this);
@@ -216,6 +218,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
 
         } catch (Exception ex) {
+            Log.d("Exception on Click", "onClick: "+ex);
             Toast.makeText(getApplicationContext(), "Exception" +ex, Toast.LENGTH_SHORT).show();
 
 
@@ -306,7 +309,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         String url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=" + str_from + "&destinations=" + str_to + "&mode=driving&language=fr-FR&avoid=tolls&key=AIzaSyBnLYofF9CaNVJeYgr9GcBi4EFu8txpmAA";
         new GeoTask(MainActivity.this).execute(url);
 
-//        vibrateOnce();
 
     }
 
@@ -352,23 +354,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void sendNotification() {
         NotificationCompat.Builder mBuilder =
                 new NotificationCompat.Builder(this)
-                        .setSmallIcon(R.drawable.images)
+                        .setSmallIcon(R.drawable.ic_wmu_notif)
                         .setContentTitle("Wake Me Up Notification!")
-                        .setContentText("You are almost at your destination ");
+                        .setContentText("You are almost at your destination ")
+                        .setAutoCancel(true)
+                        .setTicker("This is Ticker")
+                        .setWhen(System.currentTimeMillis())
+                        .setColor(Color.YELLOW)
+                        .setLights(Color.CYAN,300,200);
+
         Intent resultIntent = new Intent(this, MainActivity.class);
-        resultIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        stackBuilder.addParentStack(MainActivity.class);
-        stackBuilder.addNextIntent(resultIntent);
-        PendingIntent resultPendingIntent =
+        resultIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK| Intent.FLAG_ACTIVITY_SINGLE_TOP);
+//        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+//        stackBuilder.addParentStack(MainActivity.class);
+//        stackBuilder.addNextIntent(resultIntent);
+        /*PendingIntent resultPendingIntent =
                 stackBuilder.getPendingIntent(
                         0,
                         PendingIntent.FLAG_UPDATE_CURRENT
-                );
-        mBuilder.setContentIntent(resultPendingIntent);
+                );*/
+        PendingIntent pdgIntent = PendingIntent.getActivity(this,0,resultIntent,PendingIntent.FLAG_NO_CREATE);
+        mBuilder.setContentIntent(pdgIntent);
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.notify(0, mBuilder.build());
+        mNotificationManager.notify(10, mBuilder.build());
     }
 
 
