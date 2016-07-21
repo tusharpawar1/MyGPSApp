@@ -89,7 +89,7 @@
         <service
             android:name=".LocationCheckService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="false"></service>
     </application>
 
 </manifest>

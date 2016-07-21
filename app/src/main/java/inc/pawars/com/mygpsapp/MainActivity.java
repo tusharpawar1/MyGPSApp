@@ -1,5 +1,5 @@
 package inc.pawars.com.mygpsapp;
-
+import static inc.pawars.com.mygpsapp.GlobalVariables.*;
 import android.Manifest;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -14,14 +14,11 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.AudioAttributes;
-import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Vibrator;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -35,51 +32,22 @@ import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import android.os.Handler;
 
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.Circle;
-import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import java.util.Map;
 import com.inmobi.ads.*;
 import com.inmobi.sdk.*;
 
 import static android.media.RingtoneManager.*;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, LocationListener,OnMapReadyCallback, GeoTask.Geo {
-    private double dblLat = 0;
-    private double dblLong = 0;
-    private LocationManager locationManager;
-    private String provider;
-    private Vibrator vibrator;
-    Timer timer = null;
-    TimerTask timerTask;
-    final Handler handler = new Handler();
-    private LatLng Search_location = null;
-    private LatLng Final_Destination = null;
-    private MarkerOptions destinationMarkerOpts = null;
-    private Marker destinationMarker = null;
-    private Circle currentCircleMarker = null;
-    private Marker currentMarker = null;
-    private LatLng previous_location = null;
-    private LatLng current_location = null;
-    private float currentDistMeters = 0;
-    private long currentDistMinutes = 0;
-    private long previousTimeStamp = 0;
-    private long currentTimeStamp = 0;
-    private MainActivity main;
-    private GoogleMap map;
-    Ringtone r;
 
 
     @Override
@@ -96,6 +64,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(R.id.buttonConfirm).setOnClickListener(this);
         findViewById(R.id.buttonCancel).setOnClickListener(this);
         findViewById(R.id.buttonSnooze).setOnClickListener(this);
+        Toast.makeText(getApplicationContext(), R.string.Welcome, Toast.LENGTH_SHORT).show();
+        main = this;
 
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
@@ -106,9 +76,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Toast.makeText(getApplicationContext(), R.string.GPSPermissionNotAvail, Toast.LENGTH_SHORT).show();
             return;
         }
-        Toast.makeText(getApplicationContext(), R.string.Welcome, Toast.LENGTH_SHORT).show();
-
-        main = this;
 
         timer = new Timer();
 
@@ -118,7 +85,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        if(Final_Destination == null){
+                        if(finalDestination == null){
                             return;
                         }
                         requestGPSUpdate();
@@ -164,12 +131,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Address adr = lst.get(0);
                 dblLat = adr.getLatitude();
                 dblLong = adr.getLongitude();
-                Search_location = new LatLng(dblLat,dblLong);
+                searchLocation = new LatLng(dblLat,dblLong);
 
-                CameraUpdate update = CameraUpdateFactory.newLatLngZoom(Search_location,16);
+                CameraUpdate update = CameraUpdateFactory.newLatLngZoom(searchLocation,16);
                 map.animateCamera(update);
                 if(destinationMarker != null) destinationMarker.remove();
-                destinationMarkerOpts = new MarkerOptions().position(Search_location);
+                destinationMarkerOpts = new MarkerOptions().position(searchLocation);
                 destinationMarker = map.addMarker(destinationMarkerOpts);
 
             }
@@ -180,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     return;
                 }
                 Toast.makeText(getApplicationContext(), R.string.SleepMessage, Toast.LENGTH_SHORT).show();
-                Final_Destination = new LatLng(dblLat,dblLong);
+                finalDestination = new LatLng(dblLat,dblLong);
                 requestGPSUpdate();
 
 
@@ -251,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
     @Override
     public void onLocationChanged(Location location) {
-        if(Final_Destination == null ){
+        if(finalDestination == null ){
             return;
         }
 
@@ -261,27 +228,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return;
         }
         locationManager.removeUpdates(main);
-        if(current_location != null){
-            previous_location = current_location;
+        if(currentLocation != null){
+            previousLocation = currentLocation;
             previousTimeStamp = currentTimeStamp;
         }
         currentTimeStamp = System.currentTimeMillis();
 
-        current_location = new LatLng(location.getLatitude(),location.getLongitude());
+        currentLocation = new LatLng(location.getLatitude(),location.getLongitude());
         float[] results = new float[1];
-        Location.distanceBetween(Final_Destination.latitude, Final_Destination.longitude,
-                current_location.latitude, current_location.longitude, results);
+        Location.distanceBetween(finalDestination.latitude, finalDestination.longitude,
+                currentLocation.latitude, currentLocation.longitude, results);
         currentDistMeters = results[0];
         if(currentMarker != null){
             currentMarker.remove();
         }
 
-        currentMarker = map.addMarker(new MarkerOptions().position(current_location).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+        currentMarker = map.addMarker(new MarkerOptions().position(currentLocation).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
 
-        if(Search_location != null) {
+        if(searchLocation != null) {
             LatLngBounds.Builder builder = new LatLngBounds.Builder();
-            builder.include(Search_location);
-            builder.include(current_location);
+            builder.include(searchLocation);
+            builder.include(currentLocation);
             LatLngBounds bounds = builder.build();
             int mapPadding = 150;
             CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds,mapPadding);
@@ -291,10 +258,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 //        double time = Math.round(results[0]/400);
 //        Toast.makeText(getApplicationContext(), getString(R.string.YouAreApprx) +time+ getString(R.string.MinAway), Toast.LENGTH_SHORT).show();
-        if(null != previous_location && null != current_location &&
-                !previous_location.equals(current_location) && previousTimeStamp != 0){
-            Location.distanceBetween(previous_location.latitude, previous_location.longitude,
-                    current_location.latitude, current_location.longitude, results);
+        if(null != previousLocation && null != currentLocation &&
+                !previousLocation.equals(currentLocation) && previousTimeStamp != 0){
+            Location.distanceBetween(previousLocation.latitude, previousLocation.longitude,
+                    currentLocation.latitude, currentLocation.longitude, results);
             double timeTraveled = currentTimeStamp - previousTimeStamp;
             timeTraveled = timeTraveled/(3600);
             double velo = results[0]/(timeTraveled);
@@ -304,8 +271,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             edTxtLatitude.setText(edTxtLatitude.getText().toString()+ ","+ df.format(velo));
 
         }
-        String str_from = current_location.latitude+"," + current_location.longitude ;
-        String str_to = Final_Destination.latitude + ","+ Final_Destination.longitude ;
+        String str_from = currentLocation.latitude+"," + currentLocation.longitude ;
+        String str_to = finalDestination.latitude + ","+ finalDestination.longitude ;
         String url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=" + str_from + "&destinations=" + str_to + "&mode=driving&language=fr-FR&avoid=tolls&key=AIzaSyBnLYofF9CaNVJeYgr9GcBi4EFu8txpmAA";
         new GeoTask(MainActivity.this).execute(url);
 
@@ -330,7 +297,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        this.map = googleMap;
+        map = googleMap;
         map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
     }
 
