@@ -47,8 +47,8 @@ import com.inmobi.sdk.*;
 
 import static android.media.RingtoneManager.*;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener, LocationListener,OnMapReadyCallback, GeoTask.Geo {
-
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, OnMapReadyCallback, GeoTask.Geo {
+    private LocationCheckService locService = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,35 +67,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Toast.makeText(getApplicationContext(), R.string.Welcome, Toast.LENGTH_SHORT).show();
         main = this;
 
-        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        Criteria criteria = new Criteria();
-        provider = locationManager.getBestProvider(criteria, false);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
-            Toast.makeText(getApplicationContext(), R.string.GPSPermissionNotAvail, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        timer = new Timer();
-
-        timerTask = new TimerTask() {
-            @Override
-            public void run() {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if(finalDestination == null){
-                            return;
-                        }
-                        requestGPSUpdate();
-                    }
-                });
-
-            }
-        };
-
-        timer.schedule(timerTask,60000,60000);
         ((MapFragment)getFragmentManager().findFragmentById(R.id.mapfragment)).getMapAsync(this);
 
 
@@ -114,7 +86,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     return;
 
                 }
-                int duration = Toast.LENGTH_LONG;
 
                 View viewKeyB = this.getCurrentFocus();
                 if(viewKeyB != null){
@@ -148,6 +119,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 Toast.makeText(getApplicationContext(), R.string.SleepMessage, Toast.LENGTH_SHORT).show();
                 finalDestination = new LatLng(dblLat,dblLong);
+                
                 requestGPSUpdate();
 
 
@@ -200,100 +172,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         vibrator.vibrate(pattern,0, new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
 
     }
-    private void requestGPSUpdate(){
-        if (ActivityCompat.checkSelfPermission(main, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(main, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
-            return;
-        }
-
-        try {
-            locationManager.requestSingleUpdate(LocationManager.GPS_PROVIDER, main,null );
-//            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0,this);
-//            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,10000,0,this);
-
-        }catch(Exception ex){
-            Log.d("AppLog", "run: "+ ex);
-        }
-    }
-    @Override
-    public void onLocationChanged(Location location) {
-        if(finalDestination == null ){
-            return;
-        }
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
-            return;
-        }
-        locationManager.removeUpdates(main);
-        if(currentLocation != null){
-            previousLocation = currentLocation;
-            previousTimeStamp = currentTimeStamp;
-        }
-        currentTimeStamp = System.currentTimeMillis();
-
-        currentLocation = new LatLng(location.getLatitude(),location.getLongitude());
-        float[] results = new float[1];
-        Location.distanceBetween(finalDestination.latitude, finalDestination.longitude,
-                currentLocation.latitude, currentLocation.longitude, results);
-        currentDistMeters = results[0];
-        if(currentMarker != null){
-            currentMarker.remove();
-        }
-
-        currentMarker = map.addMarker(new MarkerOptions().position(currentLocation).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
-
-        if(searchLocation != null) {
-            LatLngBounds.Builder builder = new LatLngBounds.Builder();
-            builder.include(searchLocation);
-            builder.include(currentLocation);
-            LatLngBounds bounds = builder.build();
-            int mapPadding = 150;
-            CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds,mapPadding);
-            map.animateCamera(cu);
-
-
-        }
-//        double time = Math.round(results[0]/400);
-//        Toast.makeText(getApplicationContext(), getString(R.string.YouAreApprx) +time+ getString(R.string.MinAway), Toast.LENGTH_SHORT).show();
-        if(null != previousLocation && null != currentLocation &&
-                !previousLocation.equals(currentLocation) && previousTimeStamp != 0){
-            Location.distanceBetween(previousLocation.latitude, previousLocation.longitude,
-                    currentLocation.latitude, currentLocation.longitude, results);
-            double timeTraveled = currentTimeStamp - previousTimeStamp;
-            timeTraveled = timeTraveled/(3600);
-            double velo = results[0]/(timeTraveled);
-            DecimalFormat df = new DecimalFormat("###.####");
-            Toast.makeText(getApplicationContext(), getString(R.string.Speed1) +df.format(velo)+ getString(R.string.Speed2), Toast.LENGTH_SHORT).show();
-            EditText edTxtLatitude = (EditText) findViewById(R.id.editTextLatitude);
-            edTxtLatitude.setText(edTxtLatitude.getText().toString()+ ","+ df.format(velo));
-
-        }
-        String str_from = currentLocation.latitude+"," + currentLocation.longitude ;
-        String str_to = finalDestination.latitude + ","+ finalDestination.longitude ;
-        String url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=" + str_from + "&destinations=" + str_to + "&mode=driving&language=fr-FR&avoid=tolls&key=AIzaSyBnLYofF9CaNVJeYgr9GcBi4EFu8txpmAA";
-        new GeoTask(MainActivity.this).execute(url);
-
-
-    }
-
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-
-    }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {

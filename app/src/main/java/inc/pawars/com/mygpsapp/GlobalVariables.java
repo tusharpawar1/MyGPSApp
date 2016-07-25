@@ -39,7 +39,7 @@ public  class GlobalVariables {
     public static long currentDistMinutes = 0;
     public static long previousTimeStamp = 0;
     public static long currentTimeStamp = 0;
-    public static MainActivity main;
+    public static MainActivity main = null;
     public static GoogleMap map = null;
     public static Ringtone r = null;
 
