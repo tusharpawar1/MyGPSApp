@@ -3,8 +3,10 @@ import static inc.pawars.com.mygpsapp.GlobalVariables.*;
 import android.Manifest;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Address;
@@ -16,6 +18,10 @@ import android.location.LocationManager;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
 import android.os.Vibrator;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
@@ -49,7 +55,25 @@ import static android.media.RingtoneManager.*;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, OnMapReadyCallback, GeoTask.Geo {
     private LocationCheckService locService = null;
+    boolean mBound = false;
+    public static Handler messageHandler = new ActivityIncomingHandler();
 
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            LocationCheckService.LocalBinder binder = (LocationCheckService.LocalBinder) service;
+            locService= binder.getService();
+            mBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,9 +90,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(R.id.buttonSnooze).setOnClickListener(this);
         Toast.makeText(getApplicationContext(), R.string.Welcome, Toast.LENGTH_SHORT).show();
         main = this;
-
-
         ((MapFragment)getFragmentManager().findFragmentById(R.id.mapfragment)).getMapAsync(this);
+        Intent intent = new Intent(this, LocationCheckService.class);
+        intent.putExtra("ACTIVITY_HANDLE",new Messenger(messageHandler));
+        startService(intent);
 
 
     }
@@ -119,8 +144,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 Toast.makeText(getApplicationContext(), R.string.SleepMessage, Toast.LENGTH_SHORT).show();
                 finalDestination = new LatLng(dblLat,dblLong);
-                
-                requestGPSUpdate();
+                /*Intent intentService = new Intent(this,LocationCheckService.class);
+                Messenger actMessenger = new Messenger(new ActivityIncomingHandler());
+                intentService.putExtra("ACTIVITY_HANDLE",actMessenger);
+                startService(intentService);*/
+                locService.requestGPSUpdate();
+//                requestGPSUpdate();
+
 
 
             }
@@ -136,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Toast t = Toast.makeText(getApplicationContext(), R.string.RequestedGPSLoc, Toast.LENGTH_SHORT);
                 t.show();
 
-                requestGPSUpdate();
+//                requestGPSUpdate();
 
             }
             else if(v instanceof Button && ((Button)v).getId() == R.id.buttonCancel){
@@ -144,7 +174,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 if(vibrator != null) vibrator.cancel();
                 if (null != r ) r.stop();
-                locationManager.removeUpdates(main);
+//                locationManager.removeUpdates(main);
+//                locService.
                 if (timer != null) timer.cancel();
                 if (currentMarker!= null) currentMarker.remove();
                 if (destinationMarker != null) destinationMarker.remove();
@@ -153,7 +184,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 if(vibrator != null) vibrator.cancel();
                 if (null != r ) r.stop();
-                locationManager.removeUpdates(main);
+//                locationManager.removeUpdates(LocationCheckService.class);
+
             }
 
         } catch (Exception ex) {
@@ -233,6 +265,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         r.play();
 
     }
-
+    public static class ActivityIncomingHandler extends Handler{
+        @Override
+        public void handleMessage(Message msg) {
+            String str = (String)msg.obj;
+            /*Toast.makeText(this,
+                    "From Service -> " + str, Toast.LENGTH_LONG).show();*/
+        }
+    }
 
 }

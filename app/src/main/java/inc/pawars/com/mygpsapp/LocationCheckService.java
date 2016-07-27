@@ -10,8 +10,13 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Binder;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.widget.EditText;
@@ -33,54 +38,40 @@ import java.util.TimerTask;
 import static inc.pawars.com.mygpsapp.GlobalVariables.*;
 
 public class LocationCheckService extends IntentService implements LocationListener,OnMapReadyCallback, GeoTask.Geo {
+    Messenger mActivityMessenger = null;
 
-    /**
-     * Creates an IntentService.  Invoked by your subclass's constructor.
-     *
-     * @param name Used to name the worker thread, important only for debugging.
-     */
+    private final IBinder mBinder = new LocalBinder();
+    public class LocalBinder extends Binder {
+        LocationCheckService getService() {
+            // Return this instance of LocalService so clients can call public methods
+            return LocationCheckService.this;
+        }
+    }
+    LocationCheckService(){
+        super("LocationCheckService");
+    }
+
     public LocationCheckService(String name) {
         super(name);
+
     }
 
     @Override
     public IBinder onBind(Intent intent) {
-        // TODO: Return the communication channel to the service.
-        throw new UnsupportedOperationException("Not yet implemented");
+        return mBinder;
     }
 
     @Override
     protected void onHandleIntent(Intent intent) {
 
-        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        Criteria criteria = new Criteria();
-        provider = locationManager.getBestProvider(criteria, false);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
-            Toast.makeText(getApplicationContext(), R.string.GPSPermissionNotAvail, Toast.LENGTH_SHORT).show();
-            return;
+        Bundle extras = intent.getExtras();
+        mActivityMessenger = (Messenger) extras.get("ACTIVITY_HANDLE");
+       Message ms = new Message(); ms.arg1 =100;
+        try {
+            mActivityMessenger.send(ms);
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
-
-        timer = new Timer();
-
-        timerTask = new TimerTask() {
-            @Override
-            public void run() {
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if(finalDestination == null){
-                            return;
-                        }
-                        requestGPSUpdate();
-                    }
-                });
-
-            }
-        };
-
-        timer.schedule(timerTask,60000,60000);
     }
 
     @Override
@@ -139,7 +130,7 @@ public class LocationCheckService extends IntentService implements LocationListe
         }
         String str_from = currentLocation.latitude+"," + currentLocation.longitude ;
         String str_to = finalDestination.latitude + ","+ finalDestination.longitude ;
-        String url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=" + str_from + "&destinations=" + str_to + "&mode=driving&language=fr-FR&avoid=tolls&key=AIzaSyBnLYofF9CaNVJeYgr9GcBi4EFu8txpmAA";
+        String url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=" + str_from + "&destinations=" + str_to + "&mode=transit&traffic_model=best_guess&key=AIzaSyBnLYofF9CaNVJeYgr9GcBi4EFu8txpmAA";
         new GeoTask(main).execute(url);
 
 
@@ -186,4 +177,56 @@ public class LocationCheckService extends IntentService implements LocationListe
             Log.d("AppLog", "run: "+ ex);
         }
     }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        provider = locationManager.getBestProvider(criteria, false);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            Toast.makeText(getApplicationContext(), R.string.GPSPermissionNotAvail, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        timer = new Timer();
+
+        timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(finalDestination == null){
+                            return;
+                        }
+                        requestGPSUpdate();
+                    }
+                });
+
+            }
+        };
+
+        timer.schedule(timerTask,60000,60000);
+    }
+
+    private class IncomingHandler extends Handler{
+        @Override
+        public void handleMessage(Message msg) {
+            String str = (String)msg.obj;
+            Toast.makeText(getApplicationContext(),
+                    "From Activity -> " + str, Toast.LENGTH_LONG).show();
+            Message lMsg = new Message();
+            lMsg.obj="Hello Activity";
+            try {
+                mActivityMessenger.send(lMsg);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 }
