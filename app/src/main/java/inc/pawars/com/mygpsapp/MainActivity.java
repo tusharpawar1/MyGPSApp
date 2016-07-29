@@ -93,8 +93,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ((MapFragment)getFragmentManager().findFragmentById(R.id.mapfragment)).getMapAsync(this);
         Intent intent = new Intent(this, LocationCheckService.class);
         intent.putExtra("ACTIVITY_HANDLE",new Messenger(messageHandler));
-        startService(intent);
 
+        startService(intent);
+        bindService(intent,mConnection,Context.BIND_AUTO_CREATE);
 
     }
 
