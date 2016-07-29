@@ -10,11 +10,7 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Address;
-import android.location.Criteria;
 import android.location.Geocoder;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -33,27 +29,20 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
-
-import java.text.DecimalFormat;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
-
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.inmobi.ads.*;
 import com.inmobi.sdk.*;
 
 import static android.media.RingtoneManager.*;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener, OnMapReadyCallback, GeoTask.Geo {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, OnMapReadyCallback {
     private LocationCheckService locService = null;
     boolean mBound = false;
     public static Handler messageHandler = new ActivityIncomingHandler();
@@ -61,8 +50,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
-        public void onServiceConnected(ComponentName className,
-                                       IBinder service) {
+        public void onServiceConnected(ComponentName className,    IBinder service) {
             // We've bound to LocalService, cast the IBinder and get LocalService instance
             LocationCheckService.LocalBinder binder = (LocationCheckService.LocalBinder) service;
             locService= binder.getService();
@@ -91,9 +79,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Toast.makeText(getApplicationContext(), R.string.Welcome, Toast.LENGTH_SHORT).show();
         main = this;
         ((MapFragment)getFragmentManager().findFragmentById(R.id.mapfragment)).getMapAsync(this);
+
         Intent intent = new Intent(this, LocationCheckService.class);
         intent.putExtra("ACTIVITY_HANDLE",new Messenger(messageHandler));
-
         startService(intent);
         bindService(intent,mConnection,Context.BIND_AUTO_CREATE);
 
@@ -113,11 +101,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 }
 
-                View viewKeyB = this.getCurrentFocus();
-                if(viewKeyB != null){
-                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.hideSoftInputFromWindow(viewKeyB.getWindowToken(),0);
-                }
                 Geocoder gc = new Geocoder(getApplicationContext());
 
                 List<Address> lst = gc.getFromLocationName(edTxt.getText().toString(), 1);
@@ -145,14 +128,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 Toast.makeText(getApplicationContext(), R.string.SleepMessage, Toast.LENGTH_SHORT).show();
                 finalDestination = new LatLng(dblLat,dblLong);
-                /*Intent intentService = new Intent(this,LocationCheckService.class);
-                Messenger actMessenger = new Messenger(new ActivityIncomingHandler());
-                intentService.putExtra("ACTIVITY_HANDLE",actMessenger);
-                startService(intentService);*/
                 locService.requestGPSUpdate();
-//                requestGPSUpdate();
-
-
 
             }
             else if (v instanceof Button && ((Button) v).getId() == R.id.buttonGPS) {
@@ -166,8 +142,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 Toast t = Toast.makeText(getApplicationContext(), R.string.RequestedGPSLoc, Toast.LENGTH_SHORT);
                 t.show();
-
-//                requestGPSUpdate();
+                locService.requestGPSUpdate();
 
             }
             else if(v instanceof Button && ((Button)v).getId() == R.id.buttonCancel){
@@ -175,8 +150,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 if(vibrator != null) vibrator.cancel();
                 if (null != r ) r.stop();
-//                locationManager.removeUpdates(main);
-//                locService.
+                locService.removeUpdates();
+
                 if (timer != null) timer.cancel();
                 if (currentMarker!= null) currentMarker.remove();
                 if (destinationMarker != null) destinationMarker.remove();
@@ -185,7 +160,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 if(vibrator != null) vibrator.cancel();
                 if (null != r ) r.stop();
-//                locationManager.removeUpdates(LocationCheckService.class);
+                locService.removeUpdates();
 
             }
 
@@ -196,16 +171,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         }
     }
-    private void vibrateOnce( ){
-
-        long pattern[]={10,250,150,350,100,500,100,350,200,200,150};
-
-        vibrator = (Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
-
-        vibrator.vibrate(pattern,0, new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
-
-    }
-
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -213,59 +178,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
     }
 
-    @Override
-    public void setDouble(String result) {
-        String res[]=result.split(",");
-        Double min=Double.parseDouble(res[0])/60;
-        long lngMinutes = Math.round(min);
-        currentDistMinutes = lngMinutes;
-        int dist=Integer.parseInt(res[1])/1000;
-        EditText edTxtLongitude = (EditText) findViewById(R.id.editTextLongitude);
-        edTxtLongitude.setText(edTxtLongitude.getText().toString()+ ","+ lngMinutes );
-        Toast.makeText(getApplicationContext(), getString(R.string.YouAreApprx)  + lngMinutes  +  getString(R.string.MinAway), Toast.LENGTH_SHORT).show();
-
-        if(lngMinutes < 6 || currentDistMeters < 1000){
-            vibrateOnce();
-            playSound();
-            sendNotification();
-        }
-    }
-    private void sendNotification() {
-        NotificationCompat.Builder mBuilder =
-                new NotificationCompat.Builder(this)
-                        .setSmallIcon(R.drawable.ic_wmu_notif)
-                        .setContentTitle("Wake Me Up Notification!")
-                        .setContentText("You are almost at your destination ")
-                        .setAutoCancel(true)
-                        .setTicker("This is Ticker")
-                        .setWhen(System.currentTimeMillis())
-                        .setColor(Color.YELLOW)
-                        .setLights(Color.CYAN,300,200);
-
-        Intent resultIntent = new Intent(this, MainActivity.class);
-        resultIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK| Intent.FLAG_ACTIVITY_SINGLE_TOP);
-//        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-//        stackBuilder.addParentStack(MainActivity.class);
-//        stackBuilder.addNextIntent(resultIntent);
-        /*PendingIntent resultPendingIntent =
-                stackBuilder.getPendingIntent(
-                        0,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                );*/
-        PendingIntent pdgIntent = PendingIntent.getActivity(this,0,resultIntent,PendingIntent.FLAG_NO_CREATE);
-        mBuilder.setContentIntent(pdgIntent);
-        NotificationManager mNotificationManager =
-                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.notify(10, mBuilder.build());
-    }
-
-
-    private void playSound() {
-        Uri notif = getDefaultUri(TYPE_RINGTONE);
-        r = RingtoneManager.getRingtone(getApplicationContext(), notif);
-        r.play();
-
-    }
     public static class ActivityIncomingHandler extends Handler{
         @Override
         public void handleMessage(Message msg) {

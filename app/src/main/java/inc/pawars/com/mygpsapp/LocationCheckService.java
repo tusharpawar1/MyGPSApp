@@ -2,14 +2,20 @@ package inc.pawars.com.mygpsapp;
 
 import android.Manifest;
 import android.app.IntentService;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
@@ -17,7 +23,9 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.os.Vibrator;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -35,6 +43,8 @@ import java.text.DecimalFormat;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static android.media.RingtoneManager.TYPE_RINGTONE;
+import static android.media.RingtoneManager.getDefaultUri;
 import static inc.pawars.com.mygpsapp.GlobalVariables.*;
 
 public class LocationCheckService extends IntentService implements LocationListener,OnMapReadyCallback, GeoTask.Geo {
@@ -48,6 +58,7 @@ public class LocationCheckService extends IntentService implements LocationListe
         }
     }
     LocationCheckService(){
+
         super("LocationCheckService");
     }
 
@@ -152,7 +163,59 @@ public class LocationCheckService extends IntentService implements LocationListe
     }
 
     @Override
-    public void setDouble(String min) {
+    public void setDouble(String result) {
+        String res[]=result.split(",");
+        Double min=Double.parseDouble(res[0])/60;
+        long lngMinutes = Math.round(min);
+        currentDistMinutes = lngMinutes;
+        int dist=Integer.parseInt(res[1])/1000;
+        /*EditText edTxtLongitude = (EditText) findViewById(R.id.editTextLongitude);
+        edTxtLongitude.setText(edTxtLongitude.getText().toString()+ ","+ lngMinutes );*/
+        Toast.makeText(getApplicationContext(), getString(R.string.YouAreApprx)  + lngMinutes  +  getString(R.string.MinAway), Toast.LENGTH_SHORT).show();
+
+        if(lngMinutes < 6 || currentDistMeters < 1000){
+            vibrateOnce();
+            playSound();
+            sendNotification();
+        }
+    }
+
+    private void sendNotification() {
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.drawable.ic_wmu_notif)
+                        .setContentTitle("Wake Me Up Notification!")
+                        .setContentText("You are almost at your destination ")
+                        .setAutoCancel(true)
+                        .setTicker("This is Ticker")
+                        .setWhen(System.currentTimeMillis())
+                        .setColor(Color.YELLOW)
+                        .setLights(Color.CYAN,300,200);
+
+        Intent resultIntent = new Intent(this, MainActivity.class);
+        resultIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK| Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        PendingIntent pdgIntent = PendingIntent.getActivity(this,0,resultIntent,PendingIntent.FLAG_NO_CREATE);
+        mBuilder.setContentIntent(pdgIntent);
+        NotificationManager mNotificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.notify(10, mBuilder.build());
+    }
+
+    private void playSound() {
+        Uri notif = getDefaultUri(TYPE_RINGTONE);
+        r = RingtoneManager.getRingtone(getApplicationContext(), notif);
+        r.play();
+
+    }
+
+    private void vibrateOnce( ){
+
+        long pattern[]={10,250,150,350,100,500,100,350,200,200,150};
+
+        vibrator = (Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
+
+        vibrator.vibrate(pattern,0, new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
 
     }
 
@@ -228,5 +291,14 @@ public class LocationCheckService extends IntentService implements LocationListe
             }
         }
     }
+    public void removeUpdates(){
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
+            return;
+        }
+        if(locationManager != null) {
+            locationManager.removeUpdates(this);
+        }
+    }
 }
